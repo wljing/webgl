@@ -1,15 +1,17 @@
 const webpack = require('webpack');
+const htmlWebpackPlugin = require("html-webpack-plugin");
+const { resolve, join } = require('path');
 
-export default {
+module.exports =  {
   entry: {
     index: './index.js',
   },
   output: {
-    path: './dist',
+    path: resolve('dist'),
     filename: 'common.js',
   },
   devServer: {
-    content: './src',
+    contentBase: './src',
     port: 3000,
     hot: true,
     host: 'localhost',
@@ -23,7 +25,7 @@ export default {
       {
         test: /\.js$/,
         use: ['babel-loader'],
-        exclude: './node_module/'
+        exclude: /node_module/ ,
       },
       {
         test: /\.css$/,
@@ -33,7 +35,7 @@ export default {
   },
   plugins: [
 		new htmlWebpackPlugin({
-			template: path.join(__dirname, './src/index.html'),
+			template: join(__dirname, './src/index.html'),
 			filename: 'index.html'
     }),
     new webpack.HotModuleReplacementPlugin(),
