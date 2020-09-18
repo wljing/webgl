@@ -18,14 +18,19 @@ module.exports =  {
     open: true,
   },
   resolve: {
-    extensions: ['.js'],
+    extensions: ['.js', '.ts'],
   },
   module: {
     rules: [
       {
         test: /\.js$/,
         use: ['babel-loader'],
-        exclude: /node_module/ ,
+        exclude: /node_module/,
+      },
+      {
+        test: /\.ts$/,
+        use: ['ts-loader'],
+        exclude: /node_module/,
       },
       {
         test: /\.css$/,
@@ -35,7 +40,7 @@ module.exports =  {
   },
   plugins: [
 		new htmlWebpackPlugin({
-			template: join(__dirname, './src/index.html'),
+			template: join(__dirname, './index.html'),
 			filename: 'index.html'
     }),
     new webpack.HotModuleReplacementPlugin(),
