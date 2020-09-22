@@ -10,3 +10,5 @@ type Rgba = {
   a: float,
 };
 type Color = string | Rgba;
+
+type Mat4 = Float32Array;

@@ -1,5 +1,5 @@
 import './type';
-import { str2rgb, angle2radian } from './util';
+import { str2rgb, Martix4 } from './util';
 const sin = Math.sin;
 const cos = Math.cos;
 
@@ -7,8 +7,9 @@ const VSHADER_SRC = `
   attribute vec4 a_Position;
   attribute float a_PointSize;
   uniform mat4 u_xformMatrix;
+  uniform mat4 u_ModelViewMartix;
   void main() {
-    gl_Position = u_xformMatrix * a_Position;
+    gl_Position = u_ModelViewMartix * u_xformMatrix * a_Position;
     gl_PointSize = a_PointSize;
   }
 `
@@ -33,24 +34,25 @@ class WebGL {
 
   u_FragColor: WebGLUniformLocation; // 画笔颜色指针
   u_xformMatrix: WebGLUniformLocation; // 变换矩阵指针
-
+  u_ModelViewMartix: WebGLUniformLocation; //视图变换矩阵指针
 
   vertices: Float32Array; // 顶点数组
-  xformMatrix: any; // 变换矩阵 
-  
+  xformMatrix: Mat4; // 变换矩阵 
+  modelViewMartix: Mat4; // 视图变换矩阵
+
   bgc: Color; // 背景色
   color: Color; // 画笔颜色
   penWidth: float; // 画笔宽度
 
-  pointSize:int = 2; // 一个点用使用顶点数组的值的个数
+  pointSize: int = 2; // 一个点用使用顶点数组的值的个数
   isChangePointSize: boolean = true; // 是否修改 pointSize
-  
+
   starde: int; // buffer 跨度
   offset: int; // buffer 偏移
 
   _params: Object;
 
-  constructor(selector: string) {
+  constructor(selector: string = null) {
     if (typeof selector === 'string') {
       const e: HTMLCanvasElement = document.querySelector(selector);
       const rect = e.getBoundingClientRect();
@@ -58,14 +60,23 @@ class WebGL {
       this.height = rect.height;
       this.gl = e.getContext('webgl');
     } else {
-      throw new Error('selector is not vaild')
+      const canvas = document.createElement('canvas');
+      canvas.setAttribute('width', window.innerWidth + '');
+      canvas.setAttribute('height', window.innerHeight + '');
+      canvas.style.position = 'fixed';
+      canvas.style.top = '0';
+      canvas.style.left = '0';
+      this.width = window.innerWidth;
+      this.height = window.innerHeight;
+      this.gl = canvas.getContext('webgl');
+      document.body.appendChild(canvas);
     }
     this._init(VSHADER_SRC, FSHADER_SRC);
   }
 
   // 约定的获取着色器变量的方式
   _getAttr(name: string): any {
-    return name[0] === 'u' ? this.gl.getUniformLocation(this.program, name) : this.gl.getAttribLocation(this.program, name); 
+    return name[0] === 'u' ? this.gl.getUniformLocation(this.program, name) : this.gl.getAttribLocation(this.program, name);
   }
 
   // 初始化
@@ -97,19 +108,20 @@ class WebGL {
     this.a_PointSize = this._getAttr('a_PointSize'); // 点的宽度
     this.u_FragColor = this._getAttr('u_FragColor'); // 颜色
     this.u_xformMatrix = this._getAttr('u_xformMatrix'); // 变换矩阵
+    this.u_ModelViewMartix = this._getAttr('u_ModelViewMartix'); // 视图变换矩阵
 
     // 设置顶点buffer
     const vertexBuffer = gl.createBuffer(); //创建
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer); //绑定
     gl.enableVertexAttribArray(this.a_Position); //使用
-  
+
+    // 默认变换矩阵
+    const defaultMartix = Martix4.default();
+
     // 设置默认变换矩阵
-    this.setXFormMatrix(new Float32Array([
-      1, 0, 0, 0,
-      0, 1, 0, 0,
-      0, 0, 1, 0,
-      0, 0, 0, 1
-    ]));
+    this.setXFormMatrix(defaultMartix);
+    // 设置默认视图变换矩阵
+    this.setModelViewMartix(defaultMartix);
   }
 
   // 设置背景色
@@ -177,9 +189,15 @@ class WebGL {
   }
 
   // 设置变换矩阵
-  setXFormMatrix(matrix: Float32List) {
+  setXFormMatrix(matrix: Float32Array) {
     this.xformMatrix = matrix;
     this.gl.uniformMatrix4fv(this.u_xformMatrix, false, matrix);
+  }
+
+  // 设置视图变换矩阵
+  setModelViewMartix(martix: Float32Array) {
+    this.modelViewMartix = martix;
+    this.gl.uniformMatrix4fv(this.u_ModelViewMartix, false, martix);
   }
 
   // 设置一个点用使用顶点数组的值的个数（1-3）
@@ -237,8 +255,8 @@ class WebGL {
 
   drawPoint(x: float, y: float, z: float = 0) {
     this._saveParam();
-    const _x = this._realX(x), 
-          _y = this._realY(y);
+    const _x = this._realX(x),
+      _y = this._realY(y);
     const vertices = new Float32Array([_x, _y, z]);
     this.setVertices(vertices);
     this.draw(this.gl.POINTS, 0, 1, 3);
@@ -248,23 +266,23 @@ class WebGL {
   drawLine(x1: float, y1: float, x2: float, y2: float, z1: float = 0, z2: float = 0) {
     this._saveParam();
     const _x1 = this._realX(x1),
-          _x2 = this._realX(x2),
-          _y1 = this._realY(y1),
-          _y2 = this._realY(y2),
-          diffX = _x1 - _x2,
-          diffY = _y1 - _y2,
-          lineWidth = this.penWidth,
-          lineWidthX = this._realX(lineWidth),
-          lineWidthY = this._realY(lineWidth);
-    let x11 = _x1, 
-        x12 = _x1, 
-        y11 = _y1,
-        y12 = _y1, 
-        x21 = _x2,
-        x22 = _x2,
-        y21 = _y2,
-        y22 = _y2
-    if (diffX === 0 && diffY === 0 ) {
+      _x2 = this._realX(x2),
+      _y1 = this._realY(y1),
+      _y2 = this._realY(y2),
+      diffX = _x1 - _x2,
+      diffY = _y1 - _y2,
+      lineWidth = this.penWidth,
+      lineWidthX = this._realX(lineWidth),
+      lineWidthY = this._realY(lineWidth);
+    let x11 = _x1,
+      x12 = _x1,
+      y11 = _y1,
+      y12 = _y1,
+      x21 = _x2,
+      x22 = _x2,
+      y21 = _y2,
+      y22 = _y2
+    if (diffX === 0 && diffY === 0) {
       return;
     } else if (diffX === 0) {
       x11 += lineWidthX;
@@ -284,17 +302,17 @@ class WebGL {
       const _x = lineWidthX * cosB;
       const _y = lineWidthY * sinB;
       x11 += _x,
-      x12 -= _x,
-      y11 += _y,
-      y12 -= _y,
-      x21 += _x,
-      x22 -= _x,
-      y21 += _y,
-      y22 -= _y
+        x12 -= _x,
+        y11 += _y,
+        y12 -= _y,
+        x21 += _x,
+        x22 -= _x,
+        y21 += _y,
+        y22 -= _y
     }
     const vertices = new Float32Array([
-      x11, y11, z1, 
-      x12, y12, z1, 
+      x11, y11, z1,
+      x12, y12, z1,
       x21, y21, z2,
       x22, y22, z2,
     ]);
@@ -303,55 +321,14 @@ class WebGL {
     this._reloadParam();
   }
 
-  /**
-   * 
-   * @description 设置平移变换矩阵
-   * @param x 
-   * @param y 
-   * @param z 
-   */
-  translate(x: float, y: float = 0, z: float = 0) {
-    const matrix = new Float32Array([
-      0, 0, 0, 0,
-      0, 0, 0, 0,
-      0, 0, 0, 0,
-      this._realX(x), this._realX(y), z, 1,
-    ]);
-    this.setXFormMatrix(this.xformMatrix.map((value:float, index: int) => value + matrix[index]));
-  }
 
-  /**
-   * @description 设置旋转变换矩阵
-   * @param angle 旋转的角度
-   */
-  rotate(angle: float = 0) {
-    const radian = angle2radian(angle);
-    const sinB = sin(radian),
-          cosB = cos(radian);
-    this.xformMatrix.set([cosB, sinB], 0);
-    this.xformMatrix.set([-sinB, cosB], 4);
-    console.log(this.xformMatrix);
-    this.setXFormMatrix(this.xformMatrix);
-  }
-
-  /**
-   * @description 设置缩放变换矩阵
-   * @param rate 缩放比例
-   */
-  scaling(rate: float) {
-    const prev = this.xformMatrix;
-    this.xformMatrix.set(prev[0] * rate, 0);
-    this.xformMatrix.set(prev[5] * rate, 5);
-    this.xformMatrix.set(prev[10] * rate, 10);
-    this.setXFormMatrix(this.xformMatrix);
-  }
 }
 
 // 将WebGLRenderingContext的常量复制到 WebGL
 (() => {
   let a: any = WebGLRenderingContext.prototype;
   try {
-    for(const key in a) {
+    for (const key in a) {
       const value = a[key];
       if (typeof value !== 'function') {
         Reflect.defineProperty(WebGL.prototype, key, {
@@ -363,8 +340,10 @@ class WebGL {
       }
     }
   } catch (error) {
-    
+
   }
 })()
+
+
 
 export default WebGL;

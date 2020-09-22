@@ -1,33 +1,28 @@
 import WebGL from './lib';
-import { str2rgb } from './util';
+import { Martix4, Matrix } from './util';
 
-const gl = new WebGL('#webgl');
+const gl = new WebGL();
 gl.setBgColor('#000');
 gl.setPointWidth(10);
 gl.setVertices(new Float32Array([0.0, 0.0, .5, -.5, -.5, -.5]));
 gl.setColor('#a00');
 let start = 0;
-let dir = 1;
-const transform = new Float32Array([
-  1, 0, 0, 0,
-  0, 1, 0, 0,
-  0, 0, 1, 0,
-  start, start, 0, 1,
-]);
+let x = 0;
+let y = 0;
+const transform = new Martix4();
+// transform.translate(0.5, 0.2);
 
 function animate() {
   gl.clear();
-  gl.rotate(start);
-  gl.drawPoint(100, 0);
-  start += 0.5;
+  transform.rotate(start += 0.1)
+  gl.setXFormMatrix(transform.martix)
+  gl.drawLine(-100, 0, 0, 100);
   requestAnimationFrame(animate);
 }
-requestAnimationFrame(animate);
-// gl.clear();
-// gl.rotate();
-gl.drawLine(100, 0, 100, 100);
+// requestAnimationFrame(animate);
+
 // gl.drawLine(0, 0, 0, 0);
-// gl.drawLine(0, 0, -100, 100);
+gl.drawLine(0, 0, -100, 100);
 
 
 
