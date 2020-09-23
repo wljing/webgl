@@ -255,6 +255,9 @@ class WebGL {
     gl.drawArrays(mode, first, count);
   }
 
+  /**
+   * @description 画点
+   */
   drawPoint(x: float, y: float, z: float = 0) {
     this._saveParam();
     const _x = this.realX(x),
@@ -265,6 +268,9 @@ class WebGL {
     this._reloadParam();
   }
 
+  /**
+   * @description 画线
+   */
   drawLine(x1: float, y1: float, x2: float, y2: float, z1: float = 0, z2: float = 0) {
     this._saveParam();
     const _x1 = this.realX(x1),
@@ -283,8 +289,10 @@ class WebGL {
       x21 = _x2,
       x22 = _x2,
       y21 = _y2,
-      y22 = _y2
+      y22 = _y2;
     if (diffX === 0 && diffY === 0) {
+      this.drawPoint(x1, y1);
+      this._reloadParam();
       return;
     } else if (diffX === 0) {
       x11 += lineWidthX;
@@ -322,11 +330,9 @@ class WebGL {
     this.draw(this.gl.TRIANGLE_STRIP, 0, 4, 3);
     this._reloadParam();
   }
-
-
 }
 
-// 将WebGLRenderingContext的常量复制到 WebGL
+// 将WebGLRenderingContext的常量复制到 WebGL类
 (() => {
   let a: any = WebGLRenderingContext.prototype;
   try {
