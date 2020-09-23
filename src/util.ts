@@ -87,7 +87,6 @@ export class Martix {
   }
 
   getCol(col: int) {
-    const arr = [];
     return this.data.filter((v, index) => {
       return index % this.col == col;
     })
@@ -100,15 +99,31 @@ export class Martix {
   rank():float {
     return 0;
   }
+
+  transpose(): Martix {
+    const arr = new Array(this.col);
+    for(let i = 0; i < this.col; i++) {
+      arr[i] = [];
+    }
+    for(let i = 0; i < this.data.length; i++) {
+      arr[i % this.row].push(this.data[i]);
+    }    
+    let newMartixArray: float[] = [];
+    arr.forEach(v => {
+      newMartixArray = newMartixArray.concat(v);
+    })
+    this.data = new Float32Array(newMartixArray);
+    const t = this.row;
+    this.row = this.col;
+    this.col = t;
+    return this;
+  }
 }
 
 /**
  * @description 4 * 4矩阵
  */
 export class Martix4 extends Martix {
-  static multi(a: Martix4, b: Martix4): Martix4 {
-    return new Martix4(Martix.multi(a, b).data);
-  }
   static default() {
     return Martix4.init(new Float32Array([
       1, 0, 0, 0,
@@ -117,15 +132,48 @@ export class Martix4 extends Martix {
       0, 0, 0, 1
     ]));
   }
-  static init(array: Float32List) {
+  static init(array?: Float32List) {
     return new Martix4(array);
   }
-  constructor(martix: Float32List = null) {
+  
+  /**
+   * @description 设置视图变换矩阵（摄像机）
+   * @param x 摄像机x
+   * @param y 摄像机y
+   * @param z 摄像机z
+   * @param fx 摄像机朝向x
+   * @param fy 摄像机朝向y
+   * @param fz 摄像机朝向z
+   * @param angle 摄像机旋转的角度
+   */
+  static viewTransform(x: float, y: float, z: float, fx: float, fy: float, fz: float, angle: float):Martix4 {
+    angle = angle2radian(angle); 
+    const rx = new Float32Array([sin(angle), cos(angle) , 0]);
+    const ry = new Float32Array([-sin(angle), cos(angle), 0]);
+    const rz = new Float32Array([fx - x, fy - y, fz - z]);
+    const positionMartix = Martix4.init().translate(-x, -y, -z);
+    const viewMartix = Martix4.init();
+    viewMartix.data.set(rx, 0);
+    viewMartix.data.set(ry, 4);
+    viewMartix.data.set(rz, 8);
+    console.log(positionMartix);
+    console.log(positionMartix.transpose());
+    
+    console.log(viewMartix);
+    console.log();
+    
+    return positionMartix.multi(viewMartix);; 
+  }
+  constructor(martix?: Float32List) {
     super(martix || Martix4.default().data, 4, 4);
   }
 
-  mul(a: Martix4) {
-    return Martix4.multi(this, a);
+  /**
+   * @description 4 * 4 矩阵乘法
+   * @return 新矩阵
+   */
+  multi(a: Martix4): Martix4 {
+    return new Martix4(Martix.multi(a, this).data);
   }
   /**
    * @description 添加平移变换
@@ -140,7 +188,7 @@ export class Martix4 extends Martix {
       0, 0, 1, 0,
       x, y, z, 1,
     ]);
-    return Martix4.multi(this, Martix4.init(martix));
+    return this.multi(Martix4.init(martix));;
   }
 
   /**
@@ -156,7 +204,7 @@ export class Martix4 extends Martix {
       0, 0, 1, 0,
       0, 0, 0, 1,
     ]);
-    return Martix4.multi(this, Martix4.init(martix));
+    return this.multi(Martix4.init(martix));;
   }
 
   /**
@@ -172,6 +220,6 @@ export class Martix4 extends Martix {
       0, 0, rateZ, 0,
       0, 0, 0, 1,
     ]);
-    return Martix4.multi(this, Martix4.init(martix));
+    return this.multi(Martix4.init(martix));;
   }
 };

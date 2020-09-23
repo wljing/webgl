@@ -8,8 +8,9 @@ const VSHADER_SRC = `
   attribute float a_PointSize;
   uniform mat4 u_xformMatrix;
   uniform mat4 u_ModelViewMartix;
+  uniform mat4 u_PerspectiveMartix;
   void main() {
-    gl_Position = u_ModelViewMartix * u_xformMatrix * a_Position;
+    gl_Position = u_PerspectiveMartix * u_ModelViewMartix * u_xformMatrix * a_Position;
     gl_PointSize = a_PointSize;
   }
 `
@@ -33,13 +34,15 @@ class WebGL {
   a_PointSize: GLint; // 点的宽度指针
 
   u_FragColor: WebGLUniformLocation; // 画笔颜色指针
-  u_xformMatrix: WebGLUniformLocation; // 变换矩阵指针
+  u_xformMatrix: WebGLUniformLocation; // 基本变换矩阵指针
   u_ModelViewMartix: WebGLUniformLocation; //视图变换矩阵指针
+  u_PerspectiveMartix: WebGLUniformLocation; // 投影变换矩阵指针
 
   vertices: Float32Array; // 顶点数组
   defaultMartix: Mat4; // 默认变换矩阵 
-  xformMatrix: Mat4; // 模型变换矩阵 
+  xformMatrix: Mat4; // 基本变换矩阵 
   modelViewMartix: Mat4; // 视图变换矩阵
+  perspectiveMartix: Mat4; //投影变换矩阵
 
   bgc: Color; // 背景色
   color: Color; // 画笔颜色
@@ -110,6 +113,7 @@ class WebGL {
     this.u_FragColor = this._getAttr('u_FragColor'); // 颜色
     this.u_xformMatrix = this._getAttr('u_xformMatrix'); // 变换矩阵
     this.u_ModelViewMartix = this._getAttr('u_ModelViewMartix'); // 视图变换矩阵
+    this.u_PerspectiveMartix = this._getAttr('u_PerspectiveMartix'); // 投影变换矩阵
 
     // 设置顶点buffer
     const vertexBuffer = gl.createBuffer(); //创建
@@ -117,12 +121,15 @@ class WebGL {
     gl.enableVertexAttribArray(this.a_Position); //使用
 
     // 默认变换矩阵
-    this.defaultMartix = Martix4.default().scaling(this.height / this.width).data;
+    const def = Martix4.default();
+    this.defaultMartix = def.data;
 
     // 设置默认变换矩阵
-    this.setXFormMatrix(this.defaultMartix);
+    this.setXFormMatrix(def.scaling(this.height / this.width));
     // 设置默认视图变换矩阵
-    this.setModelViewMartix(Martix4.default());
+    this.setModelViewMartix(def);
+    // 设置默认投影变换矩阵
+    this.setPerspectiveMartix(def);
   }
 
   // 设置背景色
@@ -192,7 +199,7 @@ class WebGL {
   // 设置变换矩阵
   setXFormMatrix(martix: Float32Array | Martix4) {
     martix = martix instanceof Float32Array ? Martix4.init(martix) : martix;
-    this.xformMatrix = martix.mul(Martix4.init(this.defaultMartix)).data;
+    this.xformMatrix = Martix.multi(Martix4.init(this.defaultMartix), martix).data;
     this.gl.uniformMatrix4fv(this.u_xformMatrix, false, this.xformMatrix);
   }
 
@@ -200,6 +207,12 @@ class WebGL {
   setModelViewMartix(martix: Float32Array | Martix4) {
     this.modelViewMartix = martix instanceof Float32Array ? martix : martix.data;
     this.gl.uniformMatrix4fv(this.u_ModelViewMartix, false, this.modelViewMartix);
+  }
+
+  // 设置投影变换矩阵
+  setPerspectiveMartix(martix: Float32Array | Martix4) {
+    this.perspectiveMartix = martix instanceof Float32Array ? martix : martix.data;
+    this.gl.uniformMatrix4fv(this.u_PerspectiveMartix, false, this.perspectiveMartix);
   }
 
   // 设置一个点用使用顶点数组的值的个数（1-3）
