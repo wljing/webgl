@@ -1,7 +1,6 @@
 import './type';
 const { sin, cos } = Math;
 
-
 export const str2rgb = (str: string): Rgba | boolean => {
   let result: any = {
     r: 0,
@@ -29,23 +28,37 @@ export const str2rgb = (str: string): Rgba | boolean => {
   return result;
 }
 
+/**
+ * @description 角度转弧度
+ * @param angle 角度
+ */
 export const angle2radian = (angle: float) => angle / 180 * Math.PI;
 
+/**
+ * @description 弧度转角度
+ * @param radian 弧度
+ */
 export const radian2angle = (radian: float) => radian * 180 / Math.PI;
 
-export const martixMulti = (a: Float32Array, b: Float32Array, ) => {
-
-}
-
+/**
+ * @description 矩阵基类
+ */
 export class Martix {
   data: Float32Array;
   row: int;
   col: int;
 
-  static multi(a: Martix, b: Martix):Martix{
+  static multi(a: Martix, b: Martix): Martix {
     if (a.col !== b.row) {
-      throw new Error('Two matrices cannot be multiplied');
+      throw new Error('a.col not equal b.row');
     }
+    let result = new Martix([], b.row, b.col);
+    result.data = result.data.map((v, i) => {
+      const rowIndex = Math.floor(i / b.col), colIndex = i % b.col;
+      const rowData = a.getRow(rowIndex), colData = b.getCol(colIndex);
+      return rowData.map((v, i) => v * colData[i]).reduce((a, b) => a + b);
+    })
+    return result;
   }
 
   constructor(data: Float32List, row: int, col: int = null) {
@@ -79,93 +92,86 @@ export class Martix {
       return index % this.col == col;
     })
   }
+
+  copy(): Martix {
+    return new Martix(this.data.slice(), this.row);
+  }
+
+  rank():float {
+    return 0;
+  }
 }
 
-export class Martix4 {
-  martix: Float32Array;
-  _x: float = 0;
-  _y: float = 0;
-  _z: float = 0;
-  _angle: float = 0;
-  _rate = {
-    x: 1,
-    y: 1,
-    z: 1,
+/**
+ * @description 4 * 4矩阵
+ */
+export class Martix4 extends Martix {
+  static multi(a: Martix4, b: Martix4): Martix4 {
+    return new Martix4(Martix.multi(a, b).data);
   }
   static default() {
-    return new Float32Array([
+    return Martix4.init(new Float32Array([
       1, 0, 0, 0,
       0, 1, 0, 0,
       0, 0, 1, 0,
       0, 0, 0, 1
-    ]);
+    ]));
   }
-  static multi(a: Martix4, b: Martix4) {
+  static init(array: Float32List) {
+    return new Martix4(array);
+  }
+  constructor(martix: Float32List = null) {
+    super(martix || Martix4.default().data, 4, 4);
+  }
 
-  }
-  constructor(martix: Float32Array = null) {
-    this.martix = Martix4.default()
-    if (martix instanceof Float32Array) {
-      let len = martix.length;
-      martix = len <= 12 ? martix : martix.slice(0, 12);
-      this.martix.set(martix, 0);
-    }
+  mul(a: Martix4) {
+    return Martix4.multi(this, a);
   }
   /**
-   * 
    * @description 添加平移变换
    * @param x 
    * @param y 
    * @param z 
    */
-  translate(x: float = 0, y: float = 0, z: float = 0) {
+  translate(x: float = 0, y: float = 0, z: float = 0):Martix4 {
     const martix = new Float32Array([
       1, 0, 0, 0,
       0, 1, 0, 0,
       0, 0, 1, 0,
       x, y, z, 1,
-    ])
-    // this.martix = ;
+    ]);
+    return Martix4.multi(this, Martix4.init(martix));
   }
 
   /**
    * @description 添加旋转变换
-   * @param angle 旋转的角度
+   * @param angle 旋转的角度 
    */
-  rotate(angle: float = 0) {
-    this._angle = angle;
-    this.update();
+  rotate(angle: float = 0): Martix4 {
+    const sinB = sin(angle2radian(angle)),
+          cosB = cos(angle2radian(angle));
+    const martix = new Float32Array([
+      cosB, sinB, 0, 0,
+      -sinB, cosB, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1,
+    ]);
+    return Martix4.multi(this, Martix4.init(martix));
   }
 
   /**
    * @description 添加缩放变换
-   * @param rate 缩放比例
+   * @param rateX 缩放比例
+   * @param rateY 
+   * @param rateY 
    */
-  scaling(rateX: float = 1, rateY: float = 1, rateZ: float = 1) {
-    const matrix = new Float32Array([
+  scaling(rateX: float = 1, rateY: float = 1, rateZ: float = 1):Martix4 {
+    const martix = new Float32Array([
       rateX, 0, 0, 0,
       0, rateY, 0, 0,
       0, 0, rateZ, 0,
       0, 0, 0, 1,
     ]);
-  }
-
-  update() {
-    const x = this._x,
-          y = this._y,
-          z = this._z,
-          sinB = sin(angle2radian(this._angle)),
-          cosB = cos(angle2radian(this._angle)),
-          // rate = this._rate;
-          rate = 1;
-
-    this.martix = new Float32Array([
-      cosB * rate,  sinB * rate, 0, 0,
-      -sinB * rate, cosB * rate, 0, 0,
-      0, 0, rate, 0,
-      x, y, z, 1,
-    ])
-    console.log(sinB, cosB);
-    console.log(this.martix);
+    return Martix4.multi(this, Martix4.init(martix));
   }
 };

@@ -1,5 +1,5 @@
 import './type';
-import { str2rgb, Martix4 } from './util';
+import { str2rgb, Martix4, Martix } from './util';
 const sin = Math.sin;
 const cos = Math.cos;
 
@@ -37,7 +37,8 @@ class WebGL {
   u_ModelViewMartix: WebGLUniformLocation; //视图变换矩阵指针
 
   vertices: Float32Array; // 顶点数组
-  xformMatrix: Mat4; // 变换矩阵 
+  defaultMartix: Mat4; // 默认变换矩阵 
+  xformMatrix: Mat4; // 模型变换矩阵 
   modelViewMartix: Mat4; // 视图变换矩阵
 
   bgc: Color; // 背景色
@@ -116,12 +117,12 @@ class WebGL {
     gl.enableVertexAttribArray(this.a_Position); //使用
 
     // 默认变换矩阵
-    const defaultMartix = Martix4.default();
+    this.defaultMartix = Martix4.default().scaling(this.height / this.width).data;
 
     // 设置默认变换矩阵
-    this.setXFormMatrix(defaultMartix);
+    this.setXFormMatrix(this.defaultMartix);
     // 设置默认视图变换矩阵
-    this.setModelViewMartix(defaultMartix);
+    this.setModelViewMartix(Martix4.default());
   }
 
   // 设置背景色
@@ -189,15 +190,16 @@ class WebGL {
   }
 
   // 设置变换矩阵
-  setXFormMatrix(matrix: Float32Array) {
-    this.xformMatrix = matrix;
-    this.gl.uniformMatrix4fv(this.u_xformMatrix, false, matrix);
+  setXFormMatrix(martix: Float32Array | Martix4) {
+    martix = martix instanceof Float32Array ? Martix4.init(martix) : martix;
+    this.xformMatrix = martix.mul(Martix4.init(this.defaultMartix)).data;
+    this.gl.uniformMatrix4fv(this.u_xformMatrix, false, this.xformMatrix);
   }
 
   // 设置视图变换矩阵
-  setModelViewMartix(martix: Float32Array) {
-    this.modelViewMartix = martix;
-    this.gl.uniformMatrix4fv(this.u_ModelViewMartix, false, martix);
+  setModelViewMartix(martix: Float32Array | Martix4) {
+    this.modelViewMartix = martix instanceof Float32Array ? martix : martix.data;
+    this.gl.uniformMatrix4fv(this.u_ModelViewMartix, false, this.modelViewMartix);
   }
 
   // 设置一个点用使用顶点数组的值的个数（1-3）
@@ -226,10 +228,10 @@ class WebGL {
   }
 
   // 坐标转换
-  _realX(v: float) {
+  realX(v: float) {
     return v / this.width * 2;
   }
-  _realY(v: float) {
+  realY(v: float) {
     return v / this.height * 2;
   }
 
@@ -255,8 +257,8 @@ class WebGL {
 
   drawPoint(x: float, y: float, z: float = 0) {
     this._saveParam();
-    const _x = this._realX(x),
-      _y = this._realY(y);
+    const _x = this.realX(x),
+      _y = this.realY(y);
     const vertices = new Float32Array([_x, _y, z]);
     this.setVertices(vertices);
     this.draw(this.gl.POINTS, 0, 1, 3);
@@ -265,15 +267,15 @@ class WebGL {
 
   drawLine(x1: float, y1: float, x2: float, y2: float, z1: float = 0, z2: float = 0) {
     this._saveParam();
-    const _x1 = this._realX(x1),
-      _x2 = this._realX(x2),
-      _y1 = this._realY(y1),
-      _y2 = this._realY(y2),
+    const _x1 = this.realX(x1),
+      _x2 = this.realX(x2),
+      _y1 = this.realY(y1),
+      _y2 = this.realY(y2),
       diffX = _x1 - _x2,
       diffY = _y1 - _y2,
       lineWidth = this.penWidth,
-      lineWidthX = this._realX(lineWidth),
-      lineWidthY = this._realY(lineWidth);
+      lineWidthX = this.realX(lineWidth),
+      lineWidthY = this.realY(lineWidth);
     let x11 = _x1,
       x12 = _x1,
       y11 = _y1,
