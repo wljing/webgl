@@ -14,7 +14,7 @@ module.exports =  {
     contentBase: './src',
     port: 3000,
     hot: true,
-    host: 'localhost',
+    host: '0.0.0.0',
     open: true,
   },
   resolve: {
