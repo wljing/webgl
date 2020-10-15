@@ -135,20 +135,22 @@ export class Martix4 extends Martix {
    * @param fz 摄像机朝向z
    * @param angle 摄像机旋转的角度 以屏幕Y轴为正方向旋转
    */
-  static viewTransform(x: float, y: float, z: float, fx: float, fy: float, fz: float, angle: float = 0): Martix4 {
-    const up = Vector3.init([0, 0, -1]); // 正方向
+  static viewTransform(x: float, y: float, z: float, fx: float, fy: float, fz: float, upx: float, upy: float, upz: float): Martix4 {
+    const up = Vector3.init([upx, upy, upz]); // 正方向
     const eye = Vector3.init([x, y, z]); // 眼睛（摄像机）位置
     const look = Vector3.init([fx, fy, fz]); // 看向的位置
-    const a = look.sub(eye); // 朝向向量
-    const w = a.toUnit(); 
-    const u = w.multiX(up).toUnit();
-    const v = w.multiX(u);
-    const positionMartix = Martix4.init().translate(-x, -y, -z);
+    const f = look.sub(eye); // 朝向向量
+    const w = f.toUnit();  // f
+    const u = w.multiX(up).toUnit(); // s
+    const v = u.multiX(w); // u
+    // console.log('f', f);
+    // console.log(u, v, w);
+    
     const viewMartix = Martix4.init();
-    viewMartix.data.set([u.data[0], v.data[0], w.data[0]], 0);
-    viewMartix.data.set([u.data[1], v.data[1], w.data[1]], 4);
-    viewMartix.data.set([u.data[2], v.data[2], w.data[2]], 8);
-    return viewMartix.multi(positionMartix).rotate(angle);
+    viewMartix.data.set([u.data[0], v.data[0], -w.data[0]], 0);
+    viewMartix.data.set([u.data[1], v.data[1], -w.data[1]], 4);
+    viewMartix.data.set([u.data[2], v.data[2], -w.data[2]], 8);
+    return viewMartix;
   }
 
   constructor(martix?: Float32List) {
@@ -186,7 +188,7 @@ export class Martix4 extends Martix {
   translate(x: float = 0, y: float = 0, z: float = 0): Martix4 {
     const martix = new Float32Array([
       1, 0, 0, 0,
-      0, 1, 0, 0,
+      0, 1, 0, 0, 
       0, 0, 1, 0,
       x, y, z, 1,
     ]);

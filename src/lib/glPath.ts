@@ -56,6 +56,25 @@ export default class GLPath {
   }
 
   /**
+   * @description 生成线段
+   */
+  static genLine(x1: float, y1: float, z1: float, x2: float, y2: float, z2: float) {
+    const result = new GLPath();
+    const data = [x1, y1, z1, x2, y2, z2];
+    let step: DrawStep = {
+      mode: WebGLRenderingContext.LINES,
+      first: 0,
+      count: 2,
+      xformMartix: null,
+      pointWidth: null,
+      color: null,
+    };
+    result.vertices = new Float32Array(data);
+    result.steps.push(step);
+    return result;
+  }
+
+  /**
    * @description 生成连续的线段
    */
   static genLines() {
@@ -67,7 +86,7 @@ export default class GLPath {
   }
 
   /**
-   * @description 整合两个path
+   * @description 整合多个path为一个
    * @param path 
    */
   push(...path: Array<GLPath>): GLPath {

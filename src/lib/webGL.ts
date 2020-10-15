@@ -27,12 +27,15 @@ type WebGLConfig = {
   color: Color,
   pointWidth: float,
 }
+// const _pixelRatio = window.screen.width / screen.height;
+
 
 class WebGL {
   gl: WebGLRenderingContext; // webGL环境
 
   width: float; // canvas 宽度
   height: float; // canvas 高度
+  viewport: Array<float> = [];
 
   private program: WebGLProgram; // 程序
 
@@ -128,14 +131,16 @@ class WebGL {
 
     // 默认变换矩阵
     const def = Martix4.default();
-    this.defaultMartix = def.scaling(1, this.width / this.height);
+    this.defaultMartix = def;
+    // this.defaultMartix = def.scaling(this.height / this.width, this.width / this.height, 1);
+    // this.defaultMartix = def.scaling(1 / this.width, 1 / this.height, 1);
 
     // 设置默认变换矩阵
     this.setXFormMatrix(def);
     // 设置默认视图变换矩阵
     this.setViewMartix(def);
     // 设置默认投影变换矩阵
-    this.setPerspectiveMartix(def);
+    this.setPerspectiveMartix(def.scaling(1, this.width / this.height, 1));
   }
 
   /**
@@ -293,7 +298,10 @@ class WebGL {
    * @param path 保存顶点数据 画图步骤
    */
   drawPath(path: GLPath) {
-    this.setVertices(path.vertices, 3);
+    const vertices = path.vertices.map((v) => {
+      return v / this.width;
+    });
+    this.setVertices(vertices, 3);
     path.steps.forEach(v => {
       if (v.xformMartix) {
         this.setXFormMatrix(v.xformMartix);
@@ -312,15 +320,17 @@ class WebGL {
    * @description 画点
    * @vertices 点数组
    * @pointSize 一个点使用的值的数量
+   * 已废弃
    */
   drawPoints(vertices: Float32List, pointSize: int = 2, first:int = 0, strade:int = 0, offset:int = 0) {
-    vertices = vertices instanceof Float32Array ? vertices : new Float32Array();
+    vertices = vertices instanceof Float32Array ? vertices : new Float32Array(vertices);
     this.setVertices(vertices, pointSize, strade, offset);
     this.draw(this.gl.POINTS, first, vertices.length / pointSize);
   }
 
   /**
-   * @description 画线
+   * @description 画线 
+   * 已废弃
    */
   drawLine(x1: float, y1: float, x2: float, y2: float, z1: float = 0, z2: float = 0) {
     const _x1 = this.real(x1),
