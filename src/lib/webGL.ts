@@ -48,7 +48,6 @@ class WebGL {
   private u_PerspectiveMartix: WebGLUniformLocation; // 投影变换矩阵指针
 
   vertices: Float32Array; // 顶点数组
-  private defaultMartix: Martix4; // 默认变换矩阵 
   xformMatrix: Martix4; // 基本变换矩阵 
   viewMartix: Martix4; // 视图变换矩阵
   perspectiveMartix: Martix4; //投影变换矩阵
@@ -129,18 +128,15 @@ class WebGL {
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer); //绑定
     gl.enableVertexAttribArray(this.a_Position); //使用
 
-    // 默认变换矩阵
+    // 默认变换矩阵 
     const def = Martix4.default();
-    this.defaultMartix = def;
-    // this.defaultMartix = def.scaling(this.height / this.width, this.width / this.height, 1);
-    // this.defaultMartix = def.scaling(1 / this.width, 1 / this.height, 1);
 
     // 设置默认变换矩阵
     this.setXFormMatrix(def);
     // 设置默认视图变换矩阵
     this.setViewMartix(def);
     // 设置默认投影变换矩阵
-    this.setPerspectiveMartix(def.scaling(1, this.width / this.height, 1));
+    this.setPerspectiveMartix(def);
   }
 
   /**
@@ -231,8 +227,7 @@ class WebGL {
    * @param martix 
    */
   setXFormMatrix(martix: Martix4 | Float32Array ) {
-    martix = martix instanceof Martix4 ? martix : Martix4.init(martix);
-    this.xformMatrix = martix.multiX(this.defaultMartix);
+    this.xformMatrix = martix instanceof Martix4 ? martix : Martix4.init(martix);
     this.gl.uniformMatrix4fv(this.u_xformMatrix, false, this.xformMatrix.data);
   }
 
@@ -251,6 +246,7 @@ class WebGL {
    */
   setPerspectiveMartix(martix: Martix4 | Float32Array ) {
     this.perspectiveMartix = martix instanceof Martix4 ? martix : Martix4.init(martix);
+    this.perspectiveMartix = this.perspectiveMartix.scaling(1, this.width / this.height);
     this.gl.uniformMatrix4fv(this.u_PerspectiveMartix, false, this.perspectiveMartix.data);
   }
 
@@ -298,11 +294,12 @@ class WebGL {
    * @param path 保存顶点数据 画图步骤
    */
   drawPath(path: GLPath) {
-    const vertices = path.vertices.map((v) => {
+    const renderData = path.getRender();
+    const vertices = renderData.vertices.map((v) => {
       return v / this.width;
     });
     this.setVertices(vertices, 3);
-    path.steps.forEach(v => {
+    renderData.steps.forEach(v => {
       if (v.xformMartix) {
         this.setXFormMatrix(v.xformMartix);
       }
@@ -314,18 +311,6 @@ class WebGL {
       }
       this.draw(v.mode, v.first, v.count);
     })
-  }
-
-  /**
-   * @description 画点
-   * @vertices 点数组
-   * @pointSize 一个点使用的值的数量
-   * 已废弃
-   */
-  drawPoints(vertices: Float32List, pointSize: int = 2, first:int = 0, strade:int = 0, offset:int = 0) {
-    vertices = vertices instanceof Float32Array ? vertices : new Float32Array(vertices);
-    this.setVertices(vertices, pointSize, strade, offset);
-    this.draw(this.gl.POINTS, first, vertices.length / pointSize);
   }
 
   /**

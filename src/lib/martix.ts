@@ -133,18 +133,16 @@ export class Martix4 extends Martix {
    * @param fx 摄像机朝向x
    * @param fy 摄像机朝向y
    * @param fz 摄像机朝向z
-   * @param angle 摄像机旋转的角度 以屏幕Y轴为正方向旋转
+   * @param upx,upy,upz 正方向
    */
   static viewTransform(x: float, y: float, z: float, fx: float, fy: float, fz: float, upx: float, upy: float, upz: float): Martix4 {
     const up = Vector3.init([upx, upy, upz]); // 正方向
     const eye = Vector3.init([x, y, z]); // 眼睛（摄像机）位置
     const look = Vector3.init([fx, fy, fz]); // 看向的位置
-    const f = look.sub(eye); // 朝向向量
-    const w = f.toUnit();  // f
-    const u = w.multiX(up).toUnit(); // s
-    const v = u.multiX(w); // u
-    // console.log('f', f);
-    // console.log(u, v, w);
+    const f = look.sub(eye);
+    const w = f.toUnit();  
+    const u = w.multiX(up).toUnit();
+    const v = u.multiX(w); 
     
     const viewMartix = Martix4.init();
     viewMartix.data.set([u.data[0], v.data[0], -w.data[0]], 0);
@@ -196,10 +194,10 @@ export class Martix4 extends Martix {
   }
 
   /**
-   * @description 添加旋转变换
+   * @description 添加旋转变换 绕X轴 
    * @param angle 旋转的角度 
    */
-  rotate(angle: float = 0): Martix4 {
+  rotateZ(angle: float = 0): Martix4 {
     const sinB = sin(angle2radian(angle)),
       cosB = cos(angle2radian(angle));
     const martix = new Float32Array([
@@ -207,6 +205,38 @@ export class Martix4 extends Martix {
       -sinB, cosB, 0, 0,
       0, 0, 1, 0,
       0, 0, 0, 1,
+    ]);
+    return this.multiX(Martix4.init(martix));;
+  }
+
+  /**
+   * @description 添加旋转变换 绕X轴 
+   * @param angle 旋转的角度 
+   */
+  rotateX(angle: float = 0): Martix4 {
+    const sinB = sin(angle2radian(angle)),
+      cosB = cos(angle2radian(angle));
+    const martix = new Float32Array([
+      1,  0,    0,    0,
+      0, cosB, -sinB, 0,
+      0, sinB, cosB, 0,
+      0, 0,     0,    1,
+    ]);
+    return this.multiX(Martix4.init(martix));;
+  }
+
+  /**
+   * @description 添加旋转变换 绕X轴 
+   * @param angle 旋转的角度 
+   */
+  rotateY(angle: float = 0): Martix4 {
+    const sinB = sin(angle2radian(angle)),
+      cosB = cos(angle2radian(angle));
+    const martix = new Float32Array([
+      cosB, 0, -sinB, 0,
+      0,    1, 0,     0,
+      sinB, 0, cosB,  0,
+      0,    0, 0,     1,
     ]);
     return this.multiX(Martix4.init(martix));;
   }
