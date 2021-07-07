@@ -1,6 +1,7 @@
 export { default as WebGL } from './webGL';
 export { Martix4, Martix } from './martix';
 export { default as GLPath } from './glPath';
+export * from './camera';
 
 export { 
   angle2radian, 

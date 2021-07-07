@@ -1,8 +1,7 @@
 import { str2rgb } from './util';
 import GLPath from './glPath';
 import { Martix4 } from './martix';
-const { sin, cos } = Math;
-
+import { Camera } from './camera';
 
 const VSHADER_SRC = `
   attribute vec4 a_Position;
@@ -27,8 +26,6 @@ type WebGLConfig = {
   color: Color,
   pointWidth: float,
 }
-// const _pixelRatio = window.screen.width / screen.height;
-
 
 class WebGL {
   gl: WebGLRenderingContext; // webGL环境
@@ -37,25 +34,26 @@ class WebGL {
   height: float; // canvas 高度
   viewport: Array<float> = [];
 
-  private program: WebGLProgram; // 程序
+  private program: WebGLProgram; // glsl程序
 
   private a_Position: GLint; // 顶点指针
   private a_PointSize: GLint; // 点的宽度指针
 
   private u_FragColor: WebGLUniformLocation; // 画笔颜色指针
-  private u_xformMatrix: WebGLUniformLocation; // 基本变换矩阵指针
+  private u_xformMatrix: WebGLUniformLocation; // 模型变换矩阵指针
   private u_ViewMartix: WebGLUniformLocation; //视图变换矩阵指针
   private u_PerspectiveMartix: WebGLUniformLocation; // 投影变换矩阵指针
 
   vertices: Float32Array; // 顶点数组
-  xformMatrix: Martix4; // 基本变换矩阵 
+  xformMatrix: Martix4; // 模型变换矩阵 
   viewMartix: Martix4; // 视图变换矩阵
   perspectiveMartix: Martix4; //投影变换矩阵
 
   bgc: Color; // 背景色
-  starde:int = 0;
-  offset:int = 0;
-  private pointSize:int = 3;
+  
+  starde: int = 0; 
+  offset: int = 0;
+  private pointSize: int = 3;
 
   config: WebGLConfig = {
     color: '#000',
@@ -91,8 +89,8 @@ class WebGL {
     return name[0] === 'u' ? this.gl.getUniformLocation(this.program, name) : this.gl.getAttribLocation(this.program, name);
   }
 
-  // 初始化着色器相关
-  private _init(VSHADER: Glsl, FSHADER: Glsl): void {
+  // 初始化
+  private _init(VSHADER: GLSL, FSHADER: GLSL): void {
     const gl = this.gl;
     // 创建着色器
     const vshader = gl.createShader(gl.VERTEX_SHADER); //vertex_shader
@@ -119,7 +117,7 @@ class WebGL {
     this.a_Position = this._getAttr('a_Position') // 顶点
     this.a_PointSize = this._getAttr('a_PointSize'); // 点的宽度
     this.u_FragColor = this._getAttr('u_FragColor'); // 颜色
-    this.u_xformMatrix = this._getAttr('u_xformMatrix'); // 变换矩阵
+    this.u_xformMatrix = this._getAttr('u_xformMatrix'); // 模型变换矩阵
     this.u_ViewMartix = this._getAttr('u_ViewMartix'); // 视图变换矩阵
     this.u_PerspectiveMartix = this._getAttr('u_PerspectiveMartix'); // 投影变换矩阵
 
@@ -131,11 +129,11 @@ class WebGL {
     // 默认变换矩阵 
     const def = Martix4.default();
 
-    // 设置默认变换矩阵
+    // 设置模型变换矩阵
     this.setXFormMatrix(def);
-    // 设置默认视图变换矩阵
+    // 设置视图变换矩阵
     this.setViewMartix(def);
-    // 设置默认投影变换矩阵
+    // 设置投影变换矩阵
     this.setPerspectiveMartix(def);
   }
 
@@ -246,7 +244,7 @@ class WebGL {
    */
   setPerspectiveMartix(martix: Martix4 | Float32Array ) {
     this.perspectiveMartix = martix instanceof Martix4 ? martix : Martix4.init(martix);
-    this.perspectiveMartix = this.perspectiveMartix.scaling(1, this.width / this.height);
+    // this.perspectiveMartix = this.perspectiveMartix.scaling(1, this.width / this.height);
     this.gl.uniformMatrix4fv(this.u_PerspectiveMartix, false, this.perspectiveMartix.data);
   }
 
@@ -270,14 +268,6 @@ class WebGL {
   }
 
   /**
-   * @description canvas坐标 转换到 webgl坐标
-   * @param v 
-   */
-  real(v: float) {
-    return v / this.width * 2;
-  }
-
-  /**
    * @description 基本画图函数
    * @param mode 画图模式 POINTS | LINES | LINE_STRIP | LINE_LOOP | TRIANGLES | TRIANGEL_STRIP | TRIANGLE_FAN
    * @param first 起始位置
@@ -291,7 +281,7 @@ class WebGL {
 
   /**
    * @description 绘画路径
-   * @param path 保存顶点数据 画图步骤
+   * @param path 路径
    */
   drawPath(path: GLPath) {
     const renderData = path.getRender();
@@ -313,63 +303,8 @@ class WebGL {
     })
   }
 
-  /**
-   * @description 画线 
-   * 已废弃
-   */
-  drawLine(x1: float, y1: float, x2: float, y2: float, z1: float = 0, z2: float = 0) {
-    const _x1 = this.real(x1),
-      _x2 = this.real(x2),
-      _y1 = this.real(y1),
-      _y2 = this.real(y2),
-      diffX = _x1 - _x2,
-      diffY = _y1 - _y2,
-      lineWidth = this.config.pointWidth,
-      lineWidthX = this.real(lineWidth),
-      lineWidthY = this.real(lineWidth);
-    let x11 = _x1,
-      x12 = _x1,
-      y11 = _y1,
-      y12 = _y1,
-      x21 = _x2,
-      x22 = _x2,
-      y21 = _y2,
-      y22 = _y2;
-    if (diffX === 0 && diffY === 0) {
-    } else if (diffX === 0) {
-      x11 += lineWidthX;
-      x12 -= lineWidthX;
-      x21 += lineWidthX;
-      x22 -= lineWidthX;
-    } else if (diffY === 0) {
-      y11 += lineWidthY;
-      y12 -= lineWidthY;
-      y21 += lineWidthY;
-      y22 -= lineWidthY;
-    } else {
-      const k = -1 / (diffY / diffX);
-      const angle = Math.atan(k);
-      const sinB = sin(angle);
-      const cosB = cos(angle);
-      const _x = lineWidthX * cosB;
-      const _y = lineWidthY * sinB;
-      x11 += _x,
-        x12 -= _x,
-        y11 += _y,
-        y12 -= _y,
-        x21 += _x,
-        x22 -= _x,
-        y21 += _y,
-        y22 -= _y
-    }
-    const vertices = new Float32Array([
-      x11, y11, z1,
-      x12, y12, z1,
-      x21, y21, z2,
-      x22, y22, z2,
-    ]);
-    this.setVertices(vertices, 3, 0, 0);
-    this.draw(this.gl.TRIANGLE_STRIP, 0, 4);
+  setCamera(camera: Camera) {
+    camera.bind(this);
   }
 }
 

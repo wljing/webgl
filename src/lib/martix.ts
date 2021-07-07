@@ -1,3 +1,7 @@
+/**
+ * @description 矩阵类
+ */
+
 import { angle2radian } from './util';
 import { Vector3 } from './vector';
 
@@ -32,7 +36,7 @@ export class Martix {
   }
 
   /**
-   * @description 矩阵点乘
+   * @description 矩阵叉乘
    * @param a 
    */
   multi(a: Martix): Martix {
@@ -49,30 +53,13 @@ export class Martix {
   }
 
   /**
-   * @description 矩阵叉乘
-   * @param a 
-   * @param b 
-   */
-  multiX(a: Martix): Martix {
-    if (this.col !== a.row) {
-      throw new Error('a.col not equal b.row');
-    }
-    let result = new Martix([], this.row, a.col);
-    result.data = result.data.map((v, i) => {
-      const rowIndex = Math.floor(i / a.col), colIndex = i % a.col;
-      const rowData = this.getRow(rowIndex), colData = a.getCol(colIndex);
-      return rowData.map((v, i) => v * colData[i]).reduce((a, b) => a + b);
-    })
-    return result;
-  }
-
-  /**
     * @description 标量乘法
     * @num 
     */
   multiScalar(num: float) {
-    return new Martix(this.data.map(v => v * num), this.row, this.col); 
+    return new Martix(this.data.map(v => v * num), this.row, this.col);
   }
+
 
   getRow(row: int) {
     const start = row * this.col;
@@ -89,10 +76,17 @@ export class Martix {
     return new Martix(this.data.slice(), this.row);
   }
 
+  /**
+   * @description 矩阵的秩
+   */
   rank(): float {
+    // TODO
     return 0;
   }
 
+  /**
+   * @description 矩阵转置
+   */
   transpose(): Martix {
     const arr = new Array(this.col);
     for (let i = 0; i < this.col; i++) {
@@ -126,7 +120,7 @@ export class Martix4 extends Martix {
   }
 
   /**
-   * @description 设置视图变换矩阵（摄像机）
+   * @description 设置视图变换矩阵
    * @param x 摄像机x
    * @param y 摄像机y
    * @param z 摄像机z
@@ -140,15 +134,60 @@ export class Martix4 extends Martix {
     const eye = Vector3.init([x, y, z]); // 眼睛（摄像机）位置
     const look = Vector3.init([fx, fy, fz]); // 看向的位置
     const f = look.sub(eye);
-    const w = f.toUnit();  
+    const w = f.toUnit();
     const u = w.multiX(up).toUnit();
-    const v = u.multiX(w); 
-    
+    const v = u.multiX(w);
+
     const viewMartix = Martix4.init();
     viewMartix.data.set([u.data[0], v.data[0], -w.data[0]], 0);
     viewMartix.data.set([u.data[1], v.data[1], -w.data[1]], 4);
     viewMartix.data.set([u.data[2], v.data[2], -w.data[2]], 8);
     return viewMartix;
+  }
+
+  /**
+   * @description 透视投影变换矩阵
+   */
+  static perspectTransform(fovy: float, aspect: float, near: float, far: float) {
+    fovy = Math.PI * fovy / 180 / 2;
+    const s = Math.sin(fovy);
+    const rd = 1 / (far - near);
+    const ct = Math.cos(fovy) / s;
+    return new Martix4([
+      ct / aspect, 0, 0, 0,
+      0, ct, 0, 0,
+      0, 0, -(far + near) * rd, -1,
+      0, 0, -2 * near * far * rd, 0,
+    ]);
+  }
+
+  /**
+   * @description 正交投影变换矩阵
+   * @param left 
+   * @param right 
+   * @param top 
+   * @param near 
+   * @param far 
+   */
+  static orthoTransform(left: float, right: float, top: float, bottom: float, near: float = .1, far: float = 2000) {
+    if (left > right) {
+      throw new Error('left must less than right');
+    }
+    if (bottom > top) {
+      throw new Error('bottom must less than top');
+
+    }
+    const martix = Martix4.init();
+    const rw = 1 / (right - left),
+      rh = 1 / (top - bottom),
+      rd = 1 / (far - near);
+
+    martix.data.set([
+      2 * rw, 0, 0, 0,
+      0, 2 * rh, 0, 0,
+      0, 0, -2 * rd, 0,
+      -(right + left) * rw, -(top + bottom) * rh, -(far + near) * rd, 1]);
+    return martix;
   }
 
   constructor(martix?: Float32List) {
@@ -163,13 +202,6 @@ export class Martix4 extends Martix {
     return Martix4.init(Martix.prototype.multi.call(this, a).data);
   }
 
-  /**
-   * @description 4 * 4 矩阵叉乘
-   * @return 新矩阵
-   */
-  multiX(a: Martix4): Martix4 {
-    return Martix4.init(Martix.prototype.multiX.call(this, a).data);
-  }
 
   /**
    * @description 转置
@@ -186,11 +218,11 @@ export class Martix4 extends Martix {
   translate(x: float = 0, y: float = 0, z: float = 0): Martix4 {
     const martix = new Float32Array([
       1, 0, 0, 0,
-      0, 1, 0, 0, 
+      0, 1, 0, 0,
       0, 0, 1, 0,
       x, y, z, 1,
     ]);
-    return this.multiX(Martix4.init(martix));;
+    return this.multi(Martix4.init(martix));;
   }
 
   /**
@@ -206,7 +238,7 @@ export class Martix4 extends Martix {
       0, 0, 1, 0,
       0, 0, 0, 1,
     ]);
-    return this.multiX(Martix4.init(martix));;
+    return this.multi(Martix4.init(martix));;
   }
 
   /**
@@ -217,12 +249,12 @@ export class Martix4 extends Martix {
     const sinB = sin(angle2radian(angle)),
       cosB = cos(angle2radian(angle));
     const martix = new Float32Array([
-      1,  0,    0,    0,
+      1, 0, 0, 0,
       0, cosB, -sinB, 0,
       0, sinB, cosB, 0,
-      0, 0,     0,    1,
+      0, 0, 0, 1,
     ]);
-    return this.multiX(Martix4.init(martix));;
+    return this.multi(Martix4.init(martix));;
   }
 
   /**
@@ -234,11 +266,11 @@ export class Martix4 extends Martix {
       cosB = cos(angle2radian(angle));
     const martix = new Float32Array([
       cosB, 0, -sinB, 0,
-      0,    1, 0,     0,
-      sinB, 0, cosB,  0,
-      0,    0, 0,     1,
+      0, 1, 0, 0,
+      sinB, 0, cosB, 0,
+      0, 0, 0, 1,
     ]);
-    return this.multiX(Martix4.init(martix));;
+    return this.multi(Martix4.init(martix));;
   }
 
   /**
@@ -254,6 +286,14 @@ export class Martix4 extends Martix {
       0, 0, rateZ, 0,
       0, 0, 0, 1,
     ]);
-    return this.multiX(Martix4.init(martix));;
+    return this.multi(Martix4.init(martix));;
+  }
+
+  /**
+  * @description 标量乘法
+  * @num 
+  */
+  multiScalar(num: float): Martix4 {
+    return new Martix4(this.data.map(v => v * num));
   }
 };

@@ -1,4 +1,8 @@
 /**
+ * @description 向量类
+ */
+
+/**
  * @description 向量基类
  */
 export class Vector {
@@ -15,7 +19,7 @@ export class Vector {
   /**
    * @description 向量的模长
    */
-  norm():float {
+  norm(): float {
     let count = 0;
     for(let i = 0; i < this.data.length; i++) {
       count += this.data[i] ** 2;
@@ -25,14 +29,14 @@ export class Vector {
   /**
    * @description 生成为单位向量
    */
-  toUnit():Vector {
+  toUnit(): Vector {
     const norm = this.norm();
     return Vector.init(this.data.map(v => v / norm));
   }
   /**
    * @description 点乘
    */
-  multi(a: Vector):float {
+  multi(a: Vector): float {
     if (a.len !== this.len) {
       throw new Error('The length of the two vectors must be equal')
     }
@@ -115,5 +119,26 @@ export class Vector3 extends Vector{
    */
   sub(a: Vector) {
     return Vector3.init(Vector.init(this.data).sub(Vector.init(a.data)).data);
+  }
+
+  get x() {
+    return this.data[0];
+  }
+  set x(value: float) {
+    this.data[0] = value;
+  }
+
+  get y() {
+    return this.data[1];
+  }
+  set y(value: float) {
+    this.data[1] = value;
+  }
+
+  get z() {
+    return this.data[2];
+  }
+  set z(value: float) {
+    this.data[2] = value;
   }
 }

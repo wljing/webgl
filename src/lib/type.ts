@@ -1,7 +1,7 @@
 type int = number;
 type float = number;
 
-type Glsl = string;
+type GLSL = string;
 
 type Rgba = {
   r: float,

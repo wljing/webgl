@@ -1,5 +1,13 @@
+/**
+ * @description 工具方法
+ */
+
+/**
+ * @description 字符串转数字
+ * @param str #000 #efefef
+ */
 export const str2rgb = (str: string): Rgba | boolean => {
-  let result: any = {
+  const result: Rgba = {
     r: 0,
     g: 0,
     b: 0,
@@ -20,7 +28,7 @@ export const str2rgb = (str: string): Rgba | boolean => {
       throw new Error('str is not valid');
     }
   } catch (e) {
-    result = false;
+    return false;
   }
   return result;
 }

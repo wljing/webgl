@@ -1,43 +1,43 @@
-import { Martix4, WebGL, GLPath, angle2radian } from './lib/index';
-const { sin, cos } = Math;
+import { Martix4, WebGL, GLPath, angle2radian, OrthoCamera, Camera } from './lib/index';
 const gl = new WebGL();
-const width = gl.width, height = gl.height;
 let transform = Martix4.init(); // 模型变换矩阵
-let view = Martix4.init(); //  视图变换矩阵
-gl.setBgColor('#000');
-gl.setPointWidth(4);
-gl.setColor('#a00');
+
+const width = window.innerWidth;
+const height = window.innerHeight;
+const k = width / height;
+let left = -k / gl.width,
+    right = k / gl.width,
+    top = 1 / gl.width,
+    bottom = -1 / gl.width,
+    near = -1,
+    far = 1;
+const camera = new OrthoCamera(left, right, top, bottom, near, far);
+camera.setPosition(10, 10, 10);
+camera.lookAt(1000, 1000, 1000);
+camera.setUp(0, 0, 1);
+
+gl.setBgColor('#000'); // 设置背景颜色
+gl.setPointWidth(1); // 设置点宽
+gl.setColor('#a00'); // 设置画笔颜色
+gl.setCamera(camera);
 
 const path = GLPath.init();
-const coorX = GLPath.genLine(0, 100, 0, 0, -100, 0);
-const coorY = GLPath.genLine(100, 0, 0, -100, 0, 0);
+const coorX = GLPath.genLine(100, 0, 0, -100, 0, 0);
+const coorY = GLPath.genLine(0, 100, 0, 0, -100, 0);
 const coorZ = GLPath.genLine(0, 0, 500, 0, 0, -500);
-// const line = GLPath.genLine(0, 0, 0, 600, 100, 1000);
 path.add(coorX, coorY, coorZ);
 
-let p = 1;
-let angle = 45;
-let rotate = 0;
+let step = 0;
+
 function animate() {
+  transform = transform.rotateZ(1);
+  gl.setXFormMatrix(transform); // 模型变换
+  // camera.translate(.001, 0.001);
+  gl.setCamera(camera);
   gl.clear();
-  view = Martix4.viewTransform(p, p, 1, 0, 0, 0, 0, 0, 1);
-  // gl.setViewMartix(view);
-  // p += 0.001;
-  gl.setXFormMatrix(Martix4.init().rotateY(rotate));
-  rotate += .1
   gl.drawPath(path);
   requestAnimationFrame(animate);
 }
-requestAnimationFrame(animate);
-
-view = Martix4.viewTransform(p * sin(angle2radian(angle)), p * cos(angle2radian(angle)) , .5, 0, 0, 0, 0, 0, 1);
-view = Martix4.viewTransform(1, 1, 1, 0, 0, 0, 0, 0, 1);
-transform = transform.rotateX(20);
-// console.log(transform)
-// gl.setViewMartix(view);
-// gl.setXFormMatrix(transform);
-// gl.clear();
-// gl.drawPath(path);
-
+animate();
 
 
