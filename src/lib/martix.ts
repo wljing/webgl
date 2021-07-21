@@ -39,7 +39,7 @@ export class Martix {
    * @description 矩阵叉乘
    * @param a 
    */
-  multi(a: Martix): Martix {
+  multiX(a: Martix): Martix {
     if (this.col !== a.row || this.row !== a.col) {
       throw new Error('The row and col of two matrices are not equal');
     }
@@ -138,11 +138,16 @@ export class Martix4 extends Martix {
     const u = w.multiX(up).toUnit();
     const v = u.multiX(w);
 
-    const viewMartix = Martix4.init();
-    viewMartix.data.set([u.data[0], v.data[0], -w.data[0]], 0);
-    viewMartix.data.set([u.data[1], v.data[1], -w.data[1]], 4);
-    viewMartix.data.set([u.data[2], v.data[2], -w.data[2]], 8);
-    return viewMartix;
+    const rotate = Martix4.init([
+      u.x, v.x, -w.x, 0,
+      u.y, v.y, -w.y, 0,
+      u.z, v.z, -w.z, 0,
+      0, 0, 0, 1,
+    ]);
+
+    const translate = Martix4.init().translate(f.x, f.y);
+
+    return rotate;
   }
 
   /**
@@ -198,8 +203,8 @@ export class Martix4 extends Martix {
    * @description 4 * 4 矩阵点乘
    * @return 新矩阵
    */
-  multi(a: Martix4): Martix4 {
-    return Martix4.init(Martix.prototype.multi.call(this, a).data);
+  multiX(a: Martix4): Martix4 {
+    return Martix4.init(Martix.prototype.multiX.call(this, a).data);
   }
 
 
@@ -222,7 +227,7 @@ export class Martix4 extends Martix {
       0, 0, 1, 0,
       x, y, z, 1,
     ]);
-    return this.multi(Martix4.init(martix));;
+    return this.multiX(Martix4.init(martix));;
   }
 
   /**
@@ -238,7 +243,7 @@ export class Martix4 extends Martix {
       0, 0, 1, 0,
       0, 0, 0, 1,
     ]);
-    return this.multi(Martix4.init(martix));;
+    return this.multiX(Martix4.init(martix));;
   }
 
   /**
@@ -254,7 +259,7 @@ export class Martix4 extends Martix {
       0, sinB, cosB, 0,
       0, 0, 0, 1,
     ]);
-    return this.multi(Martix4.init(martix));;
+    return this.multiX(Martix4.init(martix));;
   }
 
   /**
@@ -270,7 +275,7 @@ export class Martix4 extends Martix {
       sinB, 0, cosB, 0,
       0, 0, 0, 1,
     ]);
-    return this.multi(Martix4.init(martix));;
+    return this.multiX(Martix4.init(martix));;
   }
 
   /**
@@ -286,7 +291,7 @@ export class Martix4 extends Martix {
       0, 0, rateZ, 0,
       0, 0, 0, 1,
     ]);
-    return this.multi(Martix4.init(martix));;
+    return this.multiX(Martix4.init(martix));;
   }
 
   /**

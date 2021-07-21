@@ -83,7 +83,6 @@ class OrthoCamera extends Camera {
   updatePerspectMartix() {
     const { left, right, top, bottom, near, far } = this;
     this.perspectMartix = Martix4.orthoTransform(left, right, top, bottom, near, far);
-
   }
 
   updateMartix() {
@@ -91,11 +90,10 @@ class OrthoCamera extends Camera {
     this.updatePerspectMartix();
   }
 
-
   bind(gl: WebGL) {
     this.updateMartix();
     gl.setViewMartix(this.viewMartix);
-    gl.setPerspectiveMartix(this.perspectMartix.multi(this.xformMartix));
+    gl.setPerspectiveMartix(this.perspectMartix.multiX(this.xformMartix));
   }
 }
 

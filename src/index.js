@@ -1,41 +1,85 @@
-import { Martix4, WebGL, GLPath, angle2radian, OrthoCamera, Camera } from './lib/index';
-const gl = new WebGL();
+import { Martix4, WebGL, GLPath, OrthoCamera } from './lib/index';
+const gl = new WebGL('#webgl_test');
 let transform = Martix4.init(); // 模型变换矩阵
 
-const width = window.innerWidth;
-const height = window.innerHeight;
+const width = gl.width;
+const height = gl.height;
 const k = width / height;
 let left = -k / gl.width,
-    right = k / gl.width,
-    top = 1 / gl.width,
-    bottom = -1 / gl.width,
-    near = -1,
-    far = 1;
-const camera = new OrthoCamera(left, right, top, bottom, near, far);
-camera.setPosition(10, 10, 10);
-camera.lookAt(1000, 1000, 1000);
+  right = k / gl.width,
+  top = 1 / gl.width,
+  bottom = -1 / gl.width,
+  near = -1,
+  far = 1;
+
+const camera = new OrthoCamera(-1, 1, 1, -1, -1, 1);
+camera.setPosition(1, 1, 1);
+camera.lookAt(0, 0, 0);
 camera.setUp(0, 0, 1);
 
-gl.setBgColor('#000'); // 设置背景颜色
-gl.setPointWidth(1); // 设置点宽
-gl.setColor('#a00'); // 设置画笔颜色
 gl.setCamera(camera);
 
-const path = GLPath.init();
-const coorX = GLPath.genLine(100, 0, 0, -100, 0, 0);
-const coorY = GLPath.genLine(0, 100, 0, 0, -100, 0);
-const coorZ = GLPath.genLine(0, 0, 500, 0, 0, -500);
-path.add(coorX, coorY, coorZ);
+gl.setBgColor('#000'); // 设置背景颜色
+gl.setPointWidth(10); // 设置点宽
+gl.clear();
+gl.gl.enable(gl.gl.DEPTH_TEST);
 
-let step = 0;
+const vertices = [
+  -1, 0, 0, 1.0, 0.0, 0.0,
+  1, 0, 0, 1.0, 0.0, 0.0,
+
+  0, -1, 0, 1.0, 0.0, 0.0,
+  0, 1, 0, 1.0, 0.0, 0.0,
+
+  0, 0, -1, 1.0, 0.0, 0.0,
+  0, 0, 1, 1.0, 0.0, 0.0,
+];
+
+const cube = [
+  0, 0, 0, 1.0, 0.0, 0.0,
+  0, .5, 0, 0, 1.0, 0.0,
+  .5, 0, 0, 0, 0.0, 1.0,
+  .5, .5, 0, 1.0, 0.0, 0.0,
+
+  .5, 0, .5, 0, 1.0, 0.0,
+  .5, .5, .5, 0, 0.0, 1.0,
+  0, 0, .5, 0, 0.0, 1.0,
+  0, .5, .5, 0, 0.0, 1.0,
+];
+
+const indeces = new Uint8Array([
+  0, 1, 2, 2, 1, 3,    // 下
+  3, 2, 4, 4, 3, 5,    // 前
+  5, 4, 6, 6, 5, 7,    // 上
+
+  7, 6, 0, 0, 7, 1,    // 后
+  0, 2, 4, 0, 4, 6,    // 左
+  1, 3, 5, 1, 5, 7,    // 右
+]);
+
+document.querySelector('#webgl_test').addEventListener('mousewheel', e => {
+  const { deltaY } = e;
+  const { x, y, z } = camera.position;
+  const step = deltaY > 0 ? .1 : -.1;
+  camera.setPosition(x, y, z + step);
+  gl.setCamera(camera);
+})
+
+let index = 1;
 
 function animate() {
-  transform = transform.rotateZ(1);
-  gl.setXFormMatrix(transform); // 模型变换
-  // camera.translate(.001, 0.001);
-  gl.setCamera(camera);
   gl.clear();
-  gl.drawPath(path);
+
+  gl.setVertices(vertices);
+  gl.gl.drawArrays(gl.gl.LINES, 0, 6);
+
+  gl.setVertices(cube)
+  gl.setIndeces(indeces);
+  gl.gl.drawElements(gl.gl.TRIANGLES, indeces.length, gl.gl.UNSIGNED_BYTE, 0);
+
+  transform = transform.rotateZ(index);
+  gl.setXFormMatrix(transform);
+
   requestAnimationFrame(animate);
 }
 animate();
